@@ -15,7 +15,7 @@ The Home Assistant Integration Guide covers everything you need to know about se
 ### Manual Installation
 
 1. [Download the latest release](https://github.com/tommy-sense/homeassistant-integration/releases/latest).
-2. Unpack the release and copy the `custom_components/tommy` directory into the `custom_components` directory of your Home Assistant installation.
+2. Unpack the release and copy the `custom_components/tommy` directory into the `config/custom_components` directory of your Home Assistant installation.
 3. Restart Home Assistant.
 4. Configure the TOMMY integration (see Configuration below).
 
