@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuration",
+        "description": "Configure your TOMMY connection",
+        "data": {
+          "host": "Host IP",
+          "mqtt_port": "MQTT Port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "motion": {
+        "name": "Motion"
+      }
+    }
+  }
+}

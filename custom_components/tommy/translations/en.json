@@ -1,0 +1,28 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Device is already configured"
+        },
+        "error": {
+            "cannot_connect": "Failed to connect",
+            "unknown": "Unexpected error"
+        },
+        "step": {
+            "user": {
+                "title": "Configuration",
+                "description": "Configure your TOMMY connection",
+                "data": {
+                    "host": "Host IP",
+                    "mqtt_port": "MQTT Port"
+                }
+            }
+        }
+    },
+    "entity": {
+        "binary_sensor": {
+            "motion": {
+                "name": "Motion"
+            }
+        }
+    }
+}
