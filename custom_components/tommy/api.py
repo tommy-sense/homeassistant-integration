@@ -41,14 +41,26 @@ class Api:
     def authenticate(self) -> None:
         """Authenticate."""
 
+
+    async def _parse_zone_config(self, data: dict) -> None:
+        """Handle zone config events."""
+        try:
+            if isinstance(data, dict):
+                if "zones" in data:
+                    zones = data["zones"]
+                    await self._on_zone_config_update(zones)
+                else:
+                    _LOGGER.warning("Received unexpected zone config format: %s", data)
+        except Exception:
+            _LOGGER.exception("Error processing zone config")
+
     async def _parse_zone_state(self, data: dict) -> None:
         """Handle zone state events."""
         try:
             if isinstance(data, dict):
-                if "zoneId" in data and "motion" in data and "zones" in data:
+                if "zoneId" in data and "motion" in data:
                     zone_id = data["zoneId"]
                     motion = data["motion"]
-                    zones = data["zones"]
 
                     if motion in ("detected", "holding"):
                         motion = True
@@ -63,7 +75,6 @@ class Api:
                         )
                         motion = False
 
-                    await self._on_zone_config_update(zones)
                     await self._on_zone_motion_update(zone_id, motion=motion)
                 else:
                     _LOGGER.warning("Received unexpected message format: %s", data)
@@ -73,6 +84,12 @@ class Api:
     async def _start_mqtt(self) -> None:
         """Start the MQTT connection to receive push updates."""
         self._mqtt_client = MQTTClient(self.host, port=int(self.mqtt_port))
+
+        # Register handler for zone config updates
+        self._mqtt_client.on(
+            "/topic/zone-config",
+            self._parse_zone_config,
+        )
 
         # Register handler for zone state updates
         self._mqtt_client.on(
