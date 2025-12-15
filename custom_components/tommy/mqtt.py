@@ -61,6 +61,10 @@ class MQTTClient:
             self._connected = True
             _LOGGER.info("MQTT connected to %s:%s", self.host, self.port)
 
+            # Subscribe to the zone config topic
+            client.subscribe("/topic/zone-config")
+            _LOGGER.info("Subscribed to /topic/zone-config")
+
             # Subscribe to the zone state topic
             client.subscribe("/topic/zone-state")
             _LOGGER.info("Subscribed to /topic/zone-state")
