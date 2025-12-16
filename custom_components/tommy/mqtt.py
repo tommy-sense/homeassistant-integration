@@ -118,8 +118,11 @@ class MQTTClient:
 
         _LOGGER.info("Connecting to TOMMY MQTT broker at %s:%s", self.host, self.port)
 
-        # Create MQTT client
-        self._client = mqtt.Client()
+        # Create MQTT client with auto-reconnect enabled
+        self._client = mqtt.Client(reconnect_on_failure=True)
+
+        # Configure exponential reconnect delay (min 1s, max 120s)
+        self._client.reconnect_delay_set(min_delay=1, max_delay=120)
 
         # Set callbacks
         self._client.on_connect = self._on_connect
