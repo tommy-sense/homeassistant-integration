@@ -26,7 +26,14 @@ The Home Assistant Integration Guide covers everything you need to know about se
 
 ### Installation using Home Assistant Community Store (HACS)
 
-Coming soon
+1. Follow the [HACS guide for custom repositories](https://hacs.xyz/docs/faq/custom_repositories)
+2. When prompted for the repository, enter: `https://github.com/tommy-sense/homeassistant-integration`
+3. Select **Integration** as the category
+4. Click **Add**
+5. Search for **tommy** in the store
+6. Click on it and press **Download**
+7. Restart Home Assistant
+8. Configure the TOMMY integration (see Configuration below)
 
 ## Configuration
 
