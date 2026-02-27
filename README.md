@@ -2,10 +2,6 @@
 
 This is the Home Assistant integration for TOMMY, allowing you to integrate your TOMMY zones with Home Assistant.
 
-> **⚠️ Pro Edition Required**
-> 
-> This integration will only sync with **TOMMY Pro Edition** instances. Community Edition users can use the [Matter integration](https://www.tommysense.com/docs/integration/matter) instead.
-
 ## Getting Started
 
 The Home Assistant Integration Guide covers everything you need to know about setting up TOMMY in Home Assistant, including installation, configuration, and troubleshooting tips.
