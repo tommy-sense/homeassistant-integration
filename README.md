@@ -12,14 +12,6 @@ The Home Assistant Integration Guide covers everything you need to know about se
 
 ## Installation
 
-### Manual Installation
-
-1. [Download the latest release](https://github.com/tommy-sense/homeassistant-integration/releases/latest).
-2. Unpack the release and copy the `custom_components/tommy` directory into the `config/custom_components` directory of your Home Assistant installation.
-   - The directory structure should be `config/custom_components/tommy`
-3. Restart Home Assistant.
-4. Configure the TOMMY integration (see Configuration below).
-
 ### Installation using Home Assistant Community Store (HACS)
 
 1. Follow the [HACS guide for custom repositories](https://hacs.xyz/docs/faq/custom_repositories)
@@ -30,6 +22,14 @@ The Home Assistant Integration Guide covers everything you need to know about se
 6. Click on it and press **Download**
 7. Restart Home Assistant
 8. Configure the TOMMY integration (see Configuration below)
+
+### Manual Installation
+
+1. [Download the latest release](https://github.com/tommy-sense/homeassistant-integration/releases/latest).
+2. Unpack the release and copy the `custom_components/tommy` directory into the `config/custom_components` directory of your Home Assistant installation.
+   - The directory structure should be `config/custom_components/tommy`
+3. Restart Home Assistant.
+4. Configure the TOMMY integration (see Configuration below).
 
 ## Configuration
 
