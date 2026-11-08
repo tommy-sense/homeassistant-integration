@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from homeassistant.core import callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
@@ -55,9 +56,7 @@ class TommyZoneManager:
         device_registry = dr.async_get(self.hass)
 
         # Get all devices for this config entry
-        devices = dr.async_entries_for_config_entry(
-            device_registry, self.config_entry.entry_id
-        )
+        devices = dr.async_entries_for_config_entry(device_registry, self.config_entry.entry_id)
         device_id_by_zone_id: dict[str, str] = {}
 
         for device in devices:
@@ -84,10 +83,7 @@ class TommyZoneManager:
             # Remove entity
             unique_id = f"{self.config_entry.entry_id}_zone_{zone_id}_motion"
             for entity_id, entity_entry in list(entity_registry.entities.items()):
-                if (
-                    entity_entry.config_entry_id == self.config_entry.entry_id
-                    and entity_entry.unique_id == unique_id
-                ):
+                if entity_entry.config_entry_id == self.config_entry.entry_id and entity_entry.unique_id == unique_id:
                     entity_registry.async_remove(entity_id)
                     _LOGGER.info("Removed entity for zone %s", zone_id)
                     break
@@ -110,15 +106,11 @@ class TommyZoneManager:
 
         if device and device.name != expected_device_name:
             device_registry.async_update_device(device.id, name=expected_device_name)
-            _LOGGER.info(
-                "Updated device name for zone %s to %s", zone["id"], zone["name"]
-            )
+            _LOGGER.info("Updated device name for zone %s to %s", zone["id"], zone["name"])
 
         # Clear entity name if incorrectly set (should be None for translation)
         unique_id = f"{self.config_entry.entry_id}_zone_{zone['id']}_motion"
-        entity_id = entity_registry.async_get_entity_id(
-            "binary_sensor", DOMAIN, unique_id
-        )
+        entity_id = entity_registry.async_get_entity_id("binary_sensor", DOMAIN, unique_id)
         if entity_id:
             entity_entry = entity_registry.async_get(entity_id)
             if entity_entry and entity_entry.name is not None:
@@ -128,9 +120,7 @@ class TommyZoneManager:
         entity = self.zones.get(zone["id"])
         if entity and hasattr(entity, "_zone_name"):
             entity._zone_name = zone["name"]  # noqa: SLF001
-            if (
-                hasattr(entity, "_attr_device_info") and entity._attr_device_info  # noqa: SLF001
-            ):
+            if hasattr(entity, "_attr_device_info") and entity._attr_device_info:  # noqa: SLF001
                 entity._attr_device_info["name"] = expected_device_name  # noqa: SLF001
             if hasattr(entity, "hass") and entity.hass:
                 entity.async_write_ha_state()
@@ -144,9 +134,7 @@ class TommyZoneManager:
         # Handle new zones
         added_zones = current_zone_ids - existing_zone_ids
         if added_zones:
-            await self._create_entities_for_zones(
-                [new_zone_info[zone_id] for zone_id in added_zones]
-            )
+            await self._create_entities_for_zones([new_zone_info[zone_id] for zone_id in added_zones])
 
         # Handle removed zones
         removed_zones = existing_zone_ids - current_zone_ids
@@ -160,6 +148,12 @@ class TommyZoneManager:
 
         # Update our zone info tracking
         self.zone_info = new_zone_info
+
+    @callback
+    def on_connection_change(self, connected: bool) -> None:  # noqa: FBT001
+        """Mark all zone entities available or unavailable."""
+        for entity in self.zones.values():
+            entity.set_available(available=connected)
 
     async def on_zone_motion_update(self, zone_id: str, *, motion: bool) -> None:
         """Handle zone state update."""

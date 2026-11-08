@@ -28,7 +28,16 @@ class MQTTClient:
         self._client: mqtt.Client | None = None
         self._connected = False
         self._event_handlers: dict[str, list[Callable]] = {}
+        self._connection_handler: Callable[[bool], None] | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
+
+    def on_connection_change(self, handler: Callable[[bool], None] | None) -> None:
+        """Register a handler called with the new state on connect and disconnect."""
+        self._connection_handler = handler
+
+    def _notify_connection_change(self, connected: bool) -> None:  # noqa: FBT001
+        if self._loop and self._connection_handler:
+            self._loop.call_soon_threadsafe(self._connection_handler, connected)
 
     def on(self, topic: str, handler: Callable) -> None:
         """
@@ -68,6 +77,8 @@ class MQTTClient:
             # Subscribe to the zone state topic
             client.subscribe("/topic/zone-state")
             _LOGGER.info("Subscribed to /topic/zone-state")
+
+            self._notify_connection_change(True)  # noqa: FBT003
         else:
             _LOGGER.error("MQTT connection failed with code %s", rc)
 
@@ -75,6 +86,7 @@ class MQTTClient:
         """Handle MQTT disconnection event."""
         self._connected = False
         _LOGGER.warning("MQTT disconnected from TOMMY (code: %s)", rc)
+        self._notify_connection_change(False)  # noqa: FBT003
 
     def _on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage) -> None:  # noqa: ANN001, ARG002
         """Handle incoming MQTT message."""
@@ -86,9 +98,7 @@ class MQTTClient:
             try:
                 data = json.loads(payload)
             except json.JSONDecodeError:
-                _LOGGER.warning(
-                    "Received non-JSON message on topic %s: %s", topic, payload
-                )
+                _LOGGER.warning("Received non-JSON message on topic %s: %s", topic, payload)
                 return
 
             # Call registered handlers for this topic
@@ -101,9 +111,7 @@ class MQTTClient:
                         else:
                             handler(data)
                     except Exception:
-                        _LOGGER.exception(
-                            "Error in message handler for topic %s", topic
-                        )
+                        _LOGGER.exception("Error in message handler for topic %s", topic)
 
         except Exception:
             _LOGGER.exception("Error processing MQTT message")
@@ -114,37 +122,40 @@ class MQTTClient:
             _LOGGER.warning("MQTT client already connecting/connected")
             return
 
-        self._loop = asyncio.get_event_loop()
+        self._loop = asyncio.get_running_loop()
 
         _LOGGER.info("Connecting to TOMMY MQTT broker at %s:%s", self.host, self.port)
 
         # Create MQTT client with auto-reconnect enabled
-        self._client = mqtt.Client(reconnect_on_failure=True)
+        client = mqtt.Client(reconnect_on_failure=True)
 
         # Configure exponential reconnect delay (min 1s, max 120s)
-        self._client.reconnect_delay_set(min_delay=1, max_delay=120)
+        client.reconnect_delay_set(min_delay=1, max_delay=120)
 
         # Set callbacks
-        self._client.on_connect = self._on_connect
-        self._client.on_disconnect = self._on_disconnect
-        self._client.on_message = self._on_message
+        client.on_connect = self._on_connect
+        client.on_disconnect = self._on_disconnect
+        client.on_message = self._on_message
 
-        try:
-            # Connect to broker
-            self._client.connect(self.host, self.port, 60)
+        await self._loop.run_in_executor(None, client.connect, self.host, self.port, 60)
+        self._client = client
 
-            # Start the network loop in a separate thread
-            self._client.loop_start()
+    async def start_loop(self) -> None:
+        """Start the network loop so messages start flowing."""
+        if self._client is None:
+            return
 
-            # Wait a bit for connection to establish
-            await asyncio.sleep(1)
+        # Start the network loop in a separate thread
+        self._client.loop_start()
 
-        except Exception:
-            _LOGGER.exception("Error connecting to MQTT broker")
-            raise
+        # Wait a bit for connection to establish
+        await asyncio.sleep(1)
 
     async def disconnect(self) -> None:
         """Disconnect from the MQTT broker."""
+        # Entities are being torn down, so a deliberate disconnect must not
+        # mark them unavailable.
+        self._connection_handler = None
         if self._client:
             try:
                 self._client.loop_stop()

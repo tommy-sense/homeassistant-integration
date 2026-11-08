@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 
 from .api import Api
@@ -43,6 +44,12 @@ async def async_setup_entry(
 
     # Connect to API
     api = Api(hass, host, mqtt_port)
+    try:
+        await api.connect()
+    except OSError as err:
+        raise ConfigEntryNotReady(
+            f"Cannot reach TOMMY MQTT broker at {host}:{mqtt_port}: {err}"
+        ) from err
 
     # Create or get the hub device first
     device_registry = dr.async_get(hass)
@@ -70,6 +77,7 @@ async def async_setup_entry(
     await api.start(
         on_zone_config_update=zone_manager.on_zone_config_update,
         on_zone_motion_update=zone_manager.on_zone_motion_update,
+        on_connection_change=zone_manager.on_connection_change,
     )
 
     return True

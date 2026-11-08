@@ -41,7 +41,6 @@ class Api:
     def authenticate(self) -> None:
         """Authenticate."""
 
-
     async def _parse_zone_config(self, data: dict) -> None:
         """Handle zone config events."""
         try:
@@ -68,8 +67,7 @@ class Api:
                         motion = False
                     else:
                         _LOGGER.warning(
-                            "Unknown or missing motion state '%s' for zone %s, "
-                            "defaulting to False",
+                            "Unknown or missing motion state '%s' for zone %s, " "defaulting to False",
                             motion,
                             zone_id,
                         )
@@ -81,23 +79,24 @@ class Api:
         except Exception:
             _LOGGER.exception("Error processing zone state")
 
-    async def _start_mqtt(self) -> None:
-        """Start the MQTT connection to receive push updates."""
-        self._mqtt_client = MQTTClient(self.host, port=int(self.mqtt_port))
+    async def connect(self) -> None:
+        """Connect to the MQTT broker. Raises OSError if TOMMY is unreachable."""
+        mqtt_client = MQTTClient(self.host, port=int(self.mqtt_port))
 
         # Register handler for zone config updates
-        self._mqtt_client.on(
+        mqtt_client.on(
             "/topic/zone-config",
             self._parse_zone_config,
         )
 
         # Register handler for zone state updates
-        self._mqtt_client.on(
+        mqtt_client.on(
             "/topic/zone-state",
             self._parse_zone_state,
         )
 
-        await self._mqtt_client.connect()
+        await mqtt_client.connect()
+        self._mqtt_client = mqtt_client
 
     async def _stop_mqtt(self) -> None:
         """Stop the MQTT connection."""
@@ -110,14 +109,17 @@ class Api:
         self,
         on_zone_config_update: Callable[[list[ZoneInfo]], None],
         on_zone_motion_update: Callable[[str, bool], None],
+        on_connection_change: Callable[[bool], None],
     ) -> None:
         """Start the API."""
         # Add callbacks
         self._on_zone_config_update = on_zone_config_update
         self._on_zone_motion_update = on_zone_motion_update
 
-        # Start MQTT
-        await self._start_mqtt()
+        # Start receiving MQTT push updates
+        if self._mqtt_client:
+            self._mqtt_client.on_connection_change(on_connection_change)
+            await self._mqtt_client.start_loop()
 
     async def stop(self) -> None:
         """Stop the API."""

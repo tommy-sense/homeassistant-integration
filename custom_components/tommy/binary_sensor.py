@@ -57,15 +57,19 @@ class TommyZoneMotionSensor(BinarySensorEntity):
 
     def on_motion_update(self, zone_id: str, motion: bool) -> None:  # noqa: FBT001
         """Handle motion state update API."""
-        if (
-            zone_id == self._zone_id
-            and self.hass is not None
-            and self._last_motion_state != motion
-        ):
+        if zone_id == self._zone_id and self.hass is not None and self._last_motion_state != motion:
             # Only update if state has actually changed
             self._last_motion_state = motion
 
             # Schedule state update in Home Assistant event loop
+            self.async_write_ha_state()
+
+    def set_available(self, *, available: bool) -> None:
+        """Update availability when the connection to TOMMY changes."""
+        if self._attr_available == available:
+            return
+        self._attr_available = available
+        if self.hass is not None:
             self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
