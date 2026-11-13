@@ -25,10 +25,11 @@ _LOGGER = logging.getLogger(__name__)
 class TommyZoneManager:
     """Manages TOMMY zone entities and devices."""
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry, hub_device_id: str) -> None:
         """Initialize the zone manager."""
         self.hass = hass
         self.config_entry = config_entry
+        self.hub_device_id = hub_device_id
         self.zones: dict[str, TommyZoneMotionSensor] = {}
         self.zone_info: dict[str, ZoneInfo] = {}
         self.async_add_entities: AddEntitiesCallback | None = None
@@ -42,7 +43,7 @@ class TommyZoneManager:
         new_entities = []
         for zone in zones:
             if zone["id"] not in self.zones:
-                entity = TommyZoneMotionSensor(self.config_entry, zone)
+                entity = TommyZoneMotionSensor(self.config_entry, zone, self.hub_device_id)
                 new_entities.append(entity)
                 self.zones[zone["id"]] = entity
 
@@ -101,7 +102,14 @@ class TommyZoneManager:
 
         # Update device name
         device_identifier = (DOMAIN, f"{self.config_entry.entry_id}_{zone['id']}")
-        device = device_registry.async_get_device(identifiers={device_identifier})
+        device = next(
+            (
+                d
+                for d in dr.async_entries_for_config_entry(device_registry, self.config_entry.entry_id)
+                if device_identifier in d.identifiers
+            ),
+            None,
+        )
         expected_device_name = f"TOMMY ({zone['name']})"
 
         if device and device.name != expected_device_name:
@@ -118,11 +126,9 @@ class TommyZoneManager:
 
         # Update tracked entity's zone name
         entity = self.zones.get(zone["id"])
-        if entity and hasattr(entity, "_zone_name"):
-            entity._zone_name = zone["name"]  # noqa: SLF001
-            if hasattr(entity, "_attr_device_info") and entity._attr_device_info:  # noqa: SLF001
-                entity._attr_device_info["name"] = expected_device_name  # noqa: SLF001
-            if hasattr(entity, "hass") and entity.hass:
+        if entity:
+            entity.set_zone_name(zone["name"])
+            if entity.hass:
                 entity.async_write_ha_state()
 
     async def on_zone_config_update(self, zones: list[ZoneInfo]) -> None:
@@ -145,6 +151,11 @@ class TommyZoneManager:
         for zone_id in current_zone_ids & existing_zone_ids:
             if new_zone_info[zone_id]["name"] != self.zone_info[zone_id]["name"]:
                 await self._update_zone_name(new_zone_info[zone_id])
+
+        for zone_id, zone in new_zone_info.items():
+            entity = self.zones.get(zone_id)
+            if entity:
+                entity.set_zone_available(available=zone.get("available", True))
 
         # Update our zone info tracking
         self.zone_info = new_zone_info

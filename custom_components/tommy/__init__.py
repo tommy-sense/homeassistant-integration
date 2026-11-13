@@ -7,8 +7,10 @@ from typing import TYPE_CHECKING
 
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR_DOMAIN
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import __version__ as ha_version
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
+from homeassistant.loader import async_get_integration
 
 from .api import Api
 from .const import CONF_HOST, CONF_MQTT_PORT, DOMAIN
@@ -43,7 +45,13 @@ async def async_setup_entry(
         return False
 
     # Connect to API
-    api = Api(hass, host, mqtt_port)
+    integration = await async_get_integration(hass, DOMAIN)
+    hello = {
+        "integration": "homeassistant",
+        "version": str(integration.version),
+        "homeassistantVersion": ha_version,
+    }
+    api = Api(hass, host, mqtt_port, hello)
     try:
         await api.connect()
     except OSError as err:
@@ -53,14 +61,14 @@ async def async_setup_entry(
 
     # Create or get the hub device first
     device_registry = dr.async_get(hass)
-    device_registry.async_get_or_create(
+    hub = device_registry.async_get_or_create(
         config_entry_id=config_entry.entry_id,
         identifiers={(DOMAIN, config_entry.entry_id)},
         name="TOMMY Hub",
     )
 
     # Create zone manager to handle entity lifecycle
-    zone_manager = TommyZoneManager(hass, config_entry)
+    zone_manager = TommyZoneManager(hass, config_entry, hub.id)
 
     config_entry.runtime_data = api
 

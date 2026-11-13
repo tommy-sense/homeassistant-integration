@@ -9,21 +9,26 @@ import paho.mqtt.client as mqtt
 
 _LOGGER = logging.getLogger(__name__)
 
+HELLO_TOPIC = "/topic/integration-hello"
+
 
 class MQTTClient:
     """MQTT client for communicating with TOMMY."""
 
-    def __init__(self, host: str, port: int = 1886) -> None:
+    def __init__(self, host: str, port: int = 1886, hello: dict | None = None) -> None:
         """
         Initialize the MQTT client.
 
         Args:
             host: The MQTT broker host.
             port: The MQTT broker port (default 1886).
+            hello: Sent to TOMMY on every connect so it knows this
+                integration's version.
 
         """
         self.host = host
         self.port = port
+        self._hello = hello
 
         self._client: mqtt.Client | None = None
         self._connected = False
@@ -77,6 +82,9 @@ class MQTTClient:
             # Subscribe to the zone state topic
             client.subscribe("/topic/zone-state")
             _LOGGER.info("Subscribed to /topic/zone-state")
+
+            if self._hello:
+                client.publish(HELLO_TOPIC, json.dumps(self._hello))
 
             self._notify_connection_change(True)  # noqa: FBT003
         else:

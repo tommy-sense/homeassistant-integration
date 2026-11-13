@@ -10,9 +10,11 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import DOMAIN
+
+_HAS_VIA_DEVICE_ID = "via_device_id" in DeviceInfo.__annotations__
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -22,6 +24,20 @@ if TYPE_CHECKING:
     from .api import ZoneInfo
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def zone_device_info(entry: ConfigEntry, zone_id: str, zone_name: str, hub_device_id: str) -> DeviceInfo:
+    """Build the device info for a zone, linked to the TOMMY hub device."""
+    if _HAS_VIA_DEVICE_ID:
+        via = {"via_device_id": hub_device_id}
+    else:
+        via = {"via_device": (DOMAIN, entry.entry_id)}
+    return DeviceInfo(
+        identifiers={(DOMAIN, f"{entry.entry_id}_{zone_id}")},
+        name=f"TOMMY ({zone_name})",
+        **via,
+    )
+
 
 MOTION_SENSOR_DESCRIPTION = BinarySensorEntityDescription(
     key="motion",
@@ -40,20 +56,23 @@ class TommyZoneMotionSensor(BinarySensorEntity):
         self,
         entry: ConfigEntry,
         zone: ZoneInfo,
+        hub_device_id: str,
     ) -> None:
         """Initialize the zone's motion binary sensor."""
+        self._entry = entry
+        self._hub_device_id = hub_device_id
         self._zone_id = zone["id"]
         self._zone_name = zone["name"]
         self._attr_unique_id = f"{entry.entry_id}_zone_{zone['id']}_motion"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, f"{entry.entry_id}_{zone['id']}")},
-            name=f"TOMMY ({zone['name']})",
-            via_device=(DOMAIN, entry.entry_id),
-        )
+        self._attr_device_info = zone_device_info(entry, zone["id"], zone["name"], hub_device_id)
 
         # Track last known motion state to avoid unnecessary updates
         # Initialize as None - will be set by first motion update
         self._last_motion_state: bool | None = None
+
+        self._connected = True
+        self._zone_available = zone.get("available", True)
+        self._attr_available = self._zone_available
 
     def on_motion_update(self, zone_id: str, motion: bool) -> None:  # noqa: FBT001
         """Handle motion state update API."""
@@ -64,8 +83,23 @@ class TommyZoneMotionSensor(BinarySensorEntity):
             # Schedule state update in Home Assistant event loop
             self.async_write_ha_state()
 
+    def set_zone_name(self, zone_name: str) -> None:
+        """Track a renamed zone."""
+        self._zone_name = zone_name
+        self._attr_device_info = zone_device_info(self._entry, self._zone_id, zone_name, self._hub_device_id)
+
     def set_available(self, *, available: bool) -> None:
         """Update availability when the connection to TOMMY changes."""
+        self._connected = available
+        self._refresh_available()
+
+    def set_zone_available(self, *, available: bool) -> None:
+        """Update availability when TOMMY starts or stops sensing the zone."""
+        self._zone_available = available
+        self._refresh_available()
+
+    def _refresh_available(self) -> None:
+        available = self._connected and self._zone_available
         if self._attr_available == available:
             return
         self._attr_available = available

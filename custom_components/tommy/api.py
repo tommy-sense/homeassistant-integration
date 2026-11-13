@@ -11,11 +11,12 @@ from .mqtt import MQTTClient
 _LOGGER = logging.getLogger(__name__)
 
 
-class ZoneInfo(TypedDict):
+class ZoneInfo(TypedDict, total=False):
     """Zone information structure."""
 
     id: str
     name: str
+    available: bool
 
 
 class Api:
@@ -26,11 +27,13 @@ class Api:
         hass: HomeAssistant,
         host: str,
         mqtt_port: int,
+        hello: dict | None = None,
     ) -> None:
         """Initialize the API client."""
         self.hass = hass
         self.host = host
         self.mqtt_port = mqtt_port
+        self._hello = hello
         self._mqtt_client: MQTTClient | None = None
 
     @property
@@ -81,7 +84,7 @@ class Api:
 
     async def connect(self) -> None:
         """Connect to the MQTT broker. Raises OSError if TOMMY is unreachable."""
-        mqtt_client = MQTTClient(self.host, port=int(self.mqtt_port))
+        mqtt_client = MQTTClient(self.host, port=int(self.mqtt_port), hello=self._hello)
 
         # Register handler for zone config updates
         mqtt_client.on(

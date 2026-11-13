@@ -12,24 +12,18 @@ The Home Assistant Integration Guide covers everything you need to know about se
 
 ## Installation
 
-### Installation using Home Assistant Community Store (HACS)
+The TOMMY integration installs from the Marketplace built into Home Assistant 2026.11 and newer.
 
-1. Follow the [HACS guide for custom repositories](https://hacs.xyz/docs/faq/custom_repositories)
-2. When prompted for the repository, enter: `https://github.com/tommy-sense/homeassistant-integration`
-3. Select **Integration** as the category
-4. Click **Add**
-5. Search for **tommy** in the store
-6. Click on it and press **Download**
-7. Restart Home Assistant
-8. Configure the TOMMY integration (see Configuration below)
+[![Open your Home Assistant instance and show the TOMMY repository in the Marketplace.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tommy-sense&repository=homeassistant-integration&category=integration)
 
-### Manual Installation
+1. In Home Assistant, go to Settings → Marketplace
+2. Click **Add from link** in the upper right
+3. Enter `tommy-sense/homeassistant-integration` and click **Add**. Connect GitHub if Home Assistant asks you to
+4. Open **TOMMY**, click **Install** and confirm the version with **Install**
+5. If Home Assistant asks for a restart under Settings → System → Repairs, restart it
+6. Configure the TOMMY integration (see Configuration below)
 
-1. [Download the latest release](https://github.com/tommy-sense/homeassistant-integration/releases/latest).
-2. Unpack the release and copy the `custom_components/tommy` directory into the `config/custom_components` directory of your Home Assistant installation.
-   - The directory structure should be `config/custom_components/tommy`
-3. Restart Home Assistant.
-4. Configure the TOMMY integration (see Configuration below).
+New versions show up under Settings → Updates. Install them there and restart Home Assistant. From TOMMY 8.0.0, the TOMMY dashboard tells you when the integration needs an update.
 
 ## Configuration
 
@@ -37,8 +31,8 @@ The Home Assistant Integration Guide covers everything you need to know about se
 2. Click "Add Integration"
 3. Search for "TOMMY"
 4. Fill out the details when prompted:
-   - Enter the IP address of your Home Assistant instance (for Add-on) or the Docker container running TOMMY (for Docker)
-   - Enter the MQTT Port assigned in your TOMMY configuration (Add-on configuration) or environment variables (Docker installation) (default: 1886)
+   - Enter the IP address of your Home Assistant instance (for App) or the Docker container running TOMMY (for Docker)
+   - Enter the MQTT Port assigned in your TOMMY configuration (App configuration) or environment variables (Docker installation) (default: 1886)
 
 ## Zones
 
