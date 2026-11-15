@@ -36,4 +36,4 @@ New versions show up under Settings → Updates. Install them there and restart 
 
 ## Zones
 
-You don't need to configure anything for zones to show up. Home Assistant will automatically stay in sync with zones in the dashboard when adding, removing, or renaming zones. For each zone, a motion sensor entity is exposed in Home Assistant.
+You don't need to configure anything for zones to show up. Home Assistant will automatically stay in sync with zones in the dashboard when adding, removing, or renaming zones. For each zone, an entity is exposed in Home Assistant.
